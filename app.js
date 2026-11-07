@@ -26,6 +26,7 @@ var I={
  spark:'<svg width="13" height="13" viewBox="0 0 14 14" fill="currentColor"><path d="M7 1.2 8.3 5.7 12.8 7 8.3 8.3 7 12.8 5.7 8.3 1.2 7l4.5-1.3z"/></svg>',
  bell:'<svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"><path d="M4 11.5V7a4 4 0 0 1 8 0v4.5l1.2 1.3H2.8z"/><path d="M6.5 14a1.6 1.6 0 0 0 3 0" stroke-linecap="round"/></svg>',
  belloff:'<svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"><path d="M4 11.5V7a4 4 0 0 1 6.4-3.2M12 7v4.5l1.2 1.3H5"/><path d="M2.5 2.5l11 11" stroke-linecap="round"/></svg>',
+ personplus:'<svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><circle cx="6.5" cy="5.2" r="2.7"/><path d="M1.8 13.5c.6-2.5 2.4-3.8 4.7-3.8s4.1 1.3 4.7 3.8M13 5.5v4M11 7.5h4"/></svg>',
  pencil:'<svg width="12" height="12" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M9.5 2.5l2 2L5 11l-2.6.6L3 9z"/></svg>',
  clock:'<svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"><circle cx="6" cy="6" r="4.6"/><path d="M6 3.4V6l1.8 1.2"/></svg>',
  quote:'<svg width="11" height="11" viewBox="0 0 12 12" fill="currentColor"><path d="M2 7.4C2 5 3.3 3.3 5.3 2.6l.4.8C4.5 4 3.9 4.9 3.9 5.8h1.6V9.5H2zm4.6 0c0-2.4 1.3-4.1 3.3-4.8l.4.8c-1.2.6-1.8 1.5-1.8 2.4h1.6V9.5H6.6z"/></svg>'
@@ -149,6 +150,7 @@ function shell(){
       '<span class="acct-wrap"><button class="icon-btn acct" id="btn-acct" hidden aria-haspopup="true" aria-expanded="false" aria-label="Account"></button><div class="acct-menu" id="acct-menu" hidden></div></span>'+
       '<button class="icon-btn bell" id="btn-bell" hidden aria-label="Notifications" title="Notifications">'+I.bell+'<span class="badge" hidden></span></button>'+
       '<button class="icon-btn" id="btn-activity" aria-label="What’s moving" title="What’s moving">'+I.bolt+'</button>'+
+      '<button class="invite-btn" id="btn-invite" hidden title="Invite people">'+I.personplus+'<span>Invite</span></button>'+
       '<button class="icon-btn" id="btn-settings" aria-label="Board settings" title="Board settings" hidden>'+I.gear+'</button>'+
       '<button class="primary" id="btn-new" hidden>'+I.plus+'<span class="lbl-long">New project</span><span class="lbl-short">New</span></button>'+
      '</div>'+
@@ -169,7 +171,7 @@ function renderHeader(){
   var st=stalledCards().length;
   $('#board-sub').textContent=ready()||total?total+(total===1?' project':' projects')+' · '+active+' in motion'+(st?' · '+st+' stalled':'')+(function(){var b=0;list.forEach(function(c){var k=colById(colOf(c)).kind;if((k==='idea'||k==='active')&&c.budget&&c.budgetPeriod!=='month')b+=c.budget});return b?' · '+money(b,true)+' budgeted':''})()+' · Updated '+ago(lastUpdated()):(mode==='signedout'||mode==='standalone'?'':'Loading…');
   var meM=members.filter(function(x){return x.email===myId})[0];if(meM&&meM.role!=='admin'&&meM.scope&&meM.scope!=='all'&&ready())$('#board-sub').textContent+=' · Showing projects shared with you';
-  $('#btn-new').hidden=!editable();$('#btn-settings').hidden=!editable();
+  $('#btn-new').hidden=!editable();$('#btn-settings').hidden=!editable();var bi=$('#btn-invite');if(bi)bi.hidden=!editable();
   var gated=mode==='signedout'||mode==='noaccess'||mode==='config'||mode==='pending';
   $('.app').classList.toggle('gated',gated);
   $('#btn-activity').hidden=gated;
@@ -525,29 +527,27 @@ function outcomeHTML(c){
 }
 function settingsHTML(){
   var h='<div class="scrim" data-close></div><section class="sheet" role="dialog" aria-modal="true" aria-label="Board settings">'+
-  '<div class="sheet-bar"><h3>Board settings</h3><span class="grow"></span><button class="primary sm" data-close>Done</button></div><div class="sheet-body" id="settings-body">'+settingsBody()+'</div></section>';
+  '<div class="sheet-bar"><h3>Settings</h3><span class="grow"></span><button class="primary sm" data-close>Done</button></div><div class="sheet-body" id="settings-body">'+settingsBody()+'</div></section>';
   return h;
 }
 function settingsBody(){
-  var h='';
+  var h=peopleHTML()+'<h3 class="set-h">Board</h3>';
   h+='<label class="field"><span>Board name</span><input id="s-name" value="'+esc(meta.name)+'"></label>';
   h+='<label class="field"><span>Small label above the name</span><input id="s-eyebrow" value="'+esc(meta.eyebrow||'')+'" placeholder="Optional"></label>';
   h+='<div class="sec"><h4>Flag a project as stalled after</h4>'+seg('stale',[{v:'7',l:'7 days'},{v:'14',l:'14 days'},{v:'30',l:'30 days'},{v:'0',l:'Never'}],String(meta.staleDays),true)+'<p class="help">Only projects in an in-progress column get flagged. Any edit or move resets the clock.</p></div>';
   h+='<div class="sec"><h4>Columns</h4><ul class="rows">'+meta.columns.map(function(col,i){var n=cardList().filter(function(c){return colOf(c)===col.id}).length;return '<li><button class="swatch" data-act="col-color" data-id="'+esc(col.id)+'" style="--c:'+hex(col.color)+'" aria-label="Change color"></button><input data-col-name="'+esc(col.id)+'" value="'+esc(col.name)+'" aria-label="Column name"><small>'+n+'</small><button class="icon-btn sm" data-act="col-up" data-id="'+esc(col.id)+'" aria-label="Move left"'+(i===0?' disabled':'')+'>'+I.up+'</button><button class="icon-btn sm" data-act="col-down" data-id="'+esc(col.id)+'" aria-label="Move right"'+(i===meta.columns.length-1?' disabled':'')+'>'+I.down+'</button><button class="icon-btn sm" data-act="col-del" data-id="'+esc(col.id)+'" aria-label="Delete column" title="'+(n?'Move its projects out first':'Delete column')+'"'+(n||meta.columns.length<2?' disabled style="opacity:.35"':'')+'>'+I.trash+'</button></li>'}).join('')+'</ul><button class="ghost" style="margin-top:6px" data-act="col-add">+ Add column</button></div>';
   h+='<div class="sec"><h4>Businesses</h4><ul class="rows">'+(meta.tags.length?meta.tags.map(function(t){var n=cardList().filter(function(c){return c.tag===t.id}).length;return '<li><button class="swatch" data-act="tag-color" data-id="'+esc(t.id)+'" style="--c:'+hex(t.color)+'" aria-label="Change color"></button><input data-tag-name="'+esc(t.id)+'" value="'+esc(t.name)+'" aria-label="Business name"><small>'+n+(n===1?' project':' projects')+'</small><button class="icon-btn sm" data-act="tag-del" data-id="'+esc(t.id)+'" aria-label="Delete business">'+I.trash+'</button></li>'}).join(''):'<li><small>No businesses yet</small></li>')+'</ul><button class="ghost" style="margin-top:6px" data-act="tag-add">+ Add business</button></div>';
-  h+=peopleHTML();
   return h;
 }
 function peopleHTML(){
   ui.expanded=ui.expanded||{};
-  var h='<div class="sec" id="people"><h4>People<span>'+members.length+'</span></h4><ul class="rows people-rows">'+members.map(function(m){
+  var h='<div class="sec" id="people"><h3 class="set-h">People &amp; access</h3>'+inviteCard()+'<h4>On this board<span>'+members.length+'</span></h4><ul class="rows people-rows">'+members.map(function(m){
     var nm=m.name||m.email.split('@')[0];var me=m.email===myId;var linked=cardsFor(m);var open=!!ui.expanded[m.email];var on=m.notify!==false;
     var row='<li><span class="av" style="--c:'+personColor(m.name||m.email)+'">'+esc(initials(nm))+'</span><button class="pm pm-btn" data-act="m-expand" data-email="'+esc(m.email)+'" aria-expanded="'+open+'"><b>'+esc(nm)+(me?' <small class="you">you</small>':'')+'</b><small>'+esc(m.email)+' · '+linked.length+(linked.length===1?' project':' projects')+(m.role==='admin'?'':' · sees '+esc(scopeLabel(m)))+' '+(open?'▴':'▾')+'</small></button>'+
       '<button class="icon-btn sm n-switch'+(on?' is-on':'')+'" data-act="m-notify" data-email="'+esc(m.email)+'" aria-pressed="'+on+'" title="'+(on?'Notifications on':'Notifications off')+'" aria-label="'+(on?'Turn off notifications for ':'Turn on notifications for ')+esc(nm)+'">'+(on?I.bell:I.belloff)+'</button>'+
       (me?'<span class="role-pill">Admin</span>':'<div class="seg mini" role="radiogroup" aria-label="Role for '+esc(nm)+'">'+['viewer','admin'].map(function(r){return '<button role="radio" aria-checked="'+(m.role===r)+'" class="'+(m.role===r?'on':'')+'" data-act="m-role" data-email="'+esc(m.email)+'" data-val="'+r+'">'+(r==='admin'?'Admin':'Viewer')+'</button>'}).join('')+'</div><button class="icon-btn sm" data-act="m-del" data-email="'+esc(m.email)+'" aria-label="Remove '+esc(nm)+'">'+I.trash+'</button>')+'</li>';
-    if(open)row+='<li class="linked">'+scopeEd(m,me)+(linked.length?'<ul>'+linked.map(function(c){var col=colById(colOf(c));return '<li><i class="dot" style="--c:'+hex(col.color)+'"></i><span>'+esc(c.title)+'</span><small>'+esc(col.name)+'</small><button class="ghost" data-act="m-unlink" data-email="'+esc(m.email)+'" data-card="'+esc(c.id)+'">Unlink</button></li>'}).join('')+'</ul>':'<p class="help">Not linked to any project. Add '+esc(nm)+' under People on a project to link them.</p>')+'</li>';
+    if(open)row+='<li class="linked">'+(me?'':'<button class="ghost copy-inv" data-act="m-copy" data-email="'+esc(m.email)+'">Copy invite message</button>')+scopeEd(m,me)+(linked.length?'<ul>'+linked.map(function(c){var col=colById(colOf(c));return '<li><i class="dot" style="--c:'+hex(col.color)+'"></i><span>'+esc(c.title)+'</span><small>'+esc(col.name)+'</small><button class="ghost" data-act="m-unlink" data-email="'+esc(m.email)+'" data-card="'+esc(c.id)+'">Unlink</button></li>'}).join('')+'</ul>':'<p class="help">Not linked to any project. Add '+esc(nm)+' under People on a project to link them.</p>')+'</li>';
     return row}).join('')+'</ul>'+
-    '<form class="add-person" id="add-person" novalidate><input id="m-email" type="email" placeholder="Email address" aria-label="Email address" autocomplete="off"><input id="m-name" placeholder="Name (as used on projects)" aria-label="Name" autocomplete="off"><select id="m-role" aria-label="Role"><option value="viewer">Viewer</option><option value="admin">Admin</option></select><select id="m-scope" aria-label="What they can see"><option value="linked">Sees their projects</option><option value="all">Sees everything</option><option value="businesses">Sees certain businesses…</option></select><button class="primary sm" type="submit">Add</button></form>'+
     '<p class="help">A person is linked to a project when their name here matches a name in the project’s People. Tap a person to see and unlink their projects; the bell turns their notifications on or off. New people sign in at <b>'+esc(location.host||'the board address')+'</b> with “Create your password”.</p></div>';
   return h;
 }
@@ -562,12 +562,24 @@ function scopeEd(m,me){
   return h;
 }
 function updateMember(m,patch,undoPatch){Object.keys(patch).forEach(function(k){m[k]=patch[k]});rerenderSettings();sb.from('members').update(patch).eq('email',m.email).then(function(r){if(r.error){Object.keys(undoPatch).forEach(function(k){m[k]=undoPatch[k]});rerenderSettings();toast('Couldn’t change that. '+r.error.message)}})}
+function inviteCard(){
+  var host=location.host||'the board address';
+  return '<form class="invite-card" id="add-person" novalidate><div class="invite-head"><span class="invite-ico">'+I.personplus+'</span><div><b>Invite someone</b><span>Add their email, then send them the invite. They sign in at '+esc(host)+'.</span></div></div>'+
+   '<div class="invite-grid"><label class="field"><span>Email</span><input id="m-email" type="email" placeholder="name@company.com" autocomplete="off"></label>'+
+   '<label class="field"><span>Name</span><input id="m-name" placeholder="As on projects, e.g. Kent" autocomplete="off"></label>'+
+   '<label class="field"><span>Role</span><select id="m-role"><option value="viewer">Viewer: can look</option><option value="admin">Admin: can change anything</option></select></label>'+
+   '<label class="field"><span>Can see</span><select id="m-scope"><option value="linked">Only their projects</option><option value="all">Everything</option><option value="businesses">Certain businesses…</option></select></label></div>'+
+   '<button class="primary invite-go" type="submit">'+I.plus+'Add to board</button></form>';
+}
+function inviteText(email,name){var url=location.origin&&location.origin.indexOf('http')===0?location.origin:'https://projects.palmtreemedia.co';return 'Hi'+(name?' '+name:'')+', I’ve added you to our project board: '+url+'\n\nFirst time: tap “First time here? Create your password” and use '+email+'.'}
+function copyInvite(email,name){var txt=inviteText(email,name);try{navigator.clipboard.writeText(txt).then(function(){toast('Invite copied. Paste it into WhatsApp, Slack or email.')},function(){toast('Couldn’t copy here. Send them: '+location.host)})}catch(e){toast('Couldn’t copy here. Send them: '+location.host)}}
+function openInvite(){ui.settings=true;ui.open=null;ui.drawer=false;ui.outcome=null;ui.notify=null;ui.bell=false;renderLayer(true);setTimeout(function(){var f=document.getElementById('m-email');if(f){f.focus()}},120)}
 function addMember(){
   var e=($('#m-email').value||'').trim().toLowerCase(),n=($('#m-name').value||'').trim(),r=$('#m-role').value,sc=$('#m-scope')?$('#m-scope').value:'all';
   if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e)){toast('Enter an email address to add someone.');$('#m-email').focus();return}
   if(members.some(function(m){return m.email===e})){toast(e+' is already on the board.');return}
   sb.from('members').insert({email:e,name:n,role:r,scope:sc,tags:[]}).then(function(res){if(res.error){toast('Couldn’t add them. '+res.error.message);return}
-    members.push({email:e,name:n,role:r,scope:sc,tags:[]});if(sc==='businesses'&&r!=='admin'){ui.expanded=ui.expanded||{};ui.expanded[e]=true}rerenderSettings();toast('Added '+(n||e)+'. Send them the board address.');var me=$('#m-email');if(me)me.focus()});
+    members.push({email:e,name:n,role:r,scope:sc,tags:[]});if(sc==='businesses'&&r!=='admin'){ui.expanded=ui.expanded||{};ui.expanded[e]=true}rerenderSettings();toast('Added '+(n||e)+' to the board',{label:'Copy invite',fn:function(){copyInvite(e,n)}});var me=$('#m-email');if(me)me.focus()});
 }
 function setRole(email,role){var m=members.filter(function(x){return x.email===email})[0];if(!m||m.role===role)return;var old=m.role;m.role=role;rerenderSettings();
   sb.from('members').update({role:role}).eq('email',email).then(function(res){if(res.error){m.role=old;rerenderSettings();toast('Couldn’t change that. '+res.error.message)}})}
@@ -771,6 +783,7 @@ document.addEventListener('click',function(e){
   if(t.closest('[data-mark-all]')){markRead(visibleNotes().filter(function(n){return !n.read}).map(function(n){return n.id}));renderLayer(false);return}
   var on2=t.closest('[data-open-note]');if(on2){markRead([on2.dataset.openNote]);openCard(on2.dataset.card);return}
   if(t.closest('#btn-activity')){if(ui.drawer){closeLayer()}else{ui.drawer=true;ui.open=null;ui.settings=false;ui.outcome=null;renderLayer(true);renderHeader();resolveNames()}return}
+  if(t.closest('#btn-invite')){openInvite();return}
   if(t.closest('#btn-settings')){ui.settings=true;ui.open=null;ui.drawer=false;ui.outcome=null;renderLayer(true);return}
   if((el=t.closest('[data-act]'))&&editable())act(el);
 });
@@ -805,6 +818,7 @@ function act(el){
     if(a==='m-notify'){var mm=members.filter(function(x){return x.email===el.dataset.email})[0];if(mm){var nv=mm.notify===false;mm.notify=nv;rerenderSettings();sb.from('members').update({notify:nv}).eq('email',mm.email).then(function(r){if(r.error){mm.notify=!nv;rerenderSettings();toast('Couldn’t change that. '+r.error.message)}else toast((mm.name||mm.email)+(nv?' will get notifications':' won’t get notifications'))})}return}
     if(a==='m-expand'){ui.expanded=ui.expanded||{};ui.expanded[el.dataset.email]=!ui.expanded[el.dataset.email];rerenderSettings();return}
     if(a==='m-unlink'){var um=members.filter(function(x){return x.email===el.dataset.email})[0],uc=cardById(el.dataset.card);if(um&&uc){var prevP=uc.people.slice();uc.people=uc.people.filter(function(p){var x=memberFor(p);return !(x&&x.email===um.email)});saveCard(uc,0);cancelPending(uc.id,um.email);rerenderSettings();softRender();toast('Unlinked '+(um.name||um.email)+' from “'+uc.title+'”',{label:'Undo',fn:function(){uc.people=prevP;saveCard(uc,0);rerenderSettings();softRender()}})}return}
+    if(a==='m-copy'){var cm=members.filter(function(x){return x.email===el.dataset.email})[0];if(cm)copyInvite(cm.email,cm.name);return}
     if(a==='m-scope'){var sm=members.filter(function(x){return x.email===el.dataset.email})[0];if(sm&&sm.scope!==el.dataset.val){updateMember(sm,{scope:el.dataset.val},{scope:sm.scope||'all'});toast((sm.name||sm.email)+' now sees '+scopeLabel(sm))}return}
     if(a==='m-tag'){var tm=members.filter(function(x){return x.email===el.dataset.email})[0];if(tm){var tg2=(tm.tags||[]).slice(),ti=tg2.indexOf(el.dataset.val);if(ti>-1)tg2.splice(ti,1);else tg2.push(el.dataset.val);updateMember(tm,{tags:tg2},{tags:(tm.tags||[]).slice()})}return}
     if(a==='m-role'){setRole(el.dataset.email,el.dataset.val);return}
