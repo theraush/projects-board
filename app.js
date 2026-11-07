@@ -190,8 +190,9 @@ function renderChips(){
   var st=stalledCards().length;
   if(st||ui.stale)h+='<button class="chip stale'+(ui.stale?' on':'')+'" data-filter-stale>'+I.clock+'Stalled<small>'+st+'</small></button>';
   meta.tags.forEach(function(t){var n=cardList().filter(function(c){return c.tag===t.id}).length;h+='<button class="chip'+(ui.tag===t.id?' on':'')+'" data-filter-tag="'+esc(t.id)+'" style="--c:'+hex(t.color)+'"><i></i>'+esc(t.name)+'<small>'+n+'</small></button>'});
-  var ppl=allPeople();
-  if(ppl.length){h+='<span class="chip-sep"></span>';ppl.forEach(function(p){var k=p.name.toLowerCase();h+='<button class="chip'+(ui.person===k?' on':'')+'" data-filter-person="'+esc(k)+'"><span class="av mini" style="--c:'+personColor(p.name)+'">'+esc(initials(p.name))+'</span>'+esc(p.name)+'</button>'})}
+  var onBoard={};(members||[]).forEach(function(m){if(m.name)onBoard[m.name.trim().toLowerCase()]=1;if(m.email)onBoard[m.email.toLowerCase()]=1});
+  var ppl=allPeople().filter(function(p){return onBoard[p.name.trim().toLowerCase()]});
+  if(ppl.length>1){h+='<span class="chip-sep"></span>';ppl.forEach(function(p){var k=p.name.toLowerCase();h+='<button class="chip'+(ui.person===k?' on':'')+'" data-filter-person="'+esc(k)+'"><span class="av mini" style="--c:'+personColor(p.name)+'">'+esc(initials(p.name))+'</span>'+esc(p.name)+'</button>'})}
   $('#chips').innerHTML=h;
 }
 function cardHTML(c){
